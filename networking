@@ -1,0 +1,122 @@
+1.DNS
+Q)
+a)Lookup hostname nsdevops.upload.akamai.com, and provide the resolution chain from the main hostname doing to ips.
+
+Ans:
+root@padmashree ~]# nslookup nsdevops.upload.akamai.com
+Server:		192.168.43.1----->DNS server where ip got resolved from domain.
+Address:	192.168.43.1#53--->port number
+
+Non-authoritative answer:
+nsdevops.upload.akamai.com	canonical name = nsdevops.c-ftp.upload.akamai.com.------>cname (hostname to hostname resolution)
+nsdevops.c-ftp.upload.akamai.com 	canonical name = r25971-34199.neards.1.cftp.e.stor.lb.akamai.net.----->cname (hostname to hostname resolution)
+
+Name:	r25971-34199.neards.1.cftp.e.stor.lb.akamai.net
+Address: 2.20.141.5
+Name:	r25971-34199.neards.1.cftp.e.stor.lb.akamai.net
+Address: 2.20.141.14
+Name:	r25971-34199.neards.1.cftp.e.stor.lb.akamai.net
+Address: 2.20.141.15
+Name:	r25971-34199.neards.1.cftp.e.stor.lb.akamai.net
+Address: 2.20.141.4
+Name:	r25971-34199.neards.1.cftp.e.stor.lb.akamai.net
+Address: 2.20.141.7
+Name:	r25971-34199.neards.1.cftp.e.stor.lb.akamai.net
+Address: 2.20.141.12
+Name:	r25971-34199.neards.1.cftp.e.stor.lb.akamai.net
+Address: 2.20.141.13
+Name:	r25971-34199.neards.1.cftp.e.stor.lb.akamai.net
+Address: 2.20.141.21
+
+Cname resolving to muliple IP's
+========================
+2.Internet
+Q)
+a)Perform a traceroute to nsdevops.upload.akamai.com
+root@training-blr:~# traceroute nsdevops.upload.akamai.com
+traceroute to nsdevops.upload.akamai.com (2.20.141.21), 30 hops max, 60 byte packets
+ 1  * * *(router but it's not forwarding to any other port & it's just silent)
+ 2  10.66.6.190 (10.66.6.190)  24.703 ms 10.66.6.212 (10.66.6.212)  1.320 ms 10.66.6.210 (10.66.6.210)  1.248 ms(local ip: trying to get route through multiple IP's)
+ 3  138.197.249.0 (138.197.249.0)  1.284 ms 138.197.249.22 (138.197.249.22)  1.312 ms 138.197.249.18 (138.197.249.18)  1.540 ms(near to edge from local n/w to public n/w)
+ 4  219.65.110.185.static-bangalore.vsnl.net.in (219.65.110.185)  2.097 ms  2.207 ms  2.201 ms(reached TATA ISP n/w)
+ 5  * * *
+ 6  ix-ae-0-100.tcore1.mlv-mumbai.as6453.net (180.87.38.5)  21.434 ms  16.893 ms  16.961 ms(still in same TATA ISP)
+ 7  if-ae-5-2.tcore1.wyn-marseille.as6453.net (80.231.217.29)  122.814 ms  121.290 ms  125.012 ms(still in same TATA ISP)
+ 8  if-ae-21-2.tcore1.pye-paris.as6453.net (80.231.154.208)  119.115 ms  118.978 ms  122.603 ms(still in same TATA ISP)
+ 9  if-ae-11-2.tcore1.pvu-paris.as6453.net (80.231.153.49)  118.802 ms  122.872 ms  121.222 ms(still in same TATA ISP)
+10  ae7-xcr1.ptl.cw.net (195.2.22.17)  123.620 ms  122.574 ms  122.598 ms(cable and wireless)(use #whois <ip> to get details of the ISP)
+11  ae5-xcr2.fri.cw.net (195.2.28.218)  137.660 ms  134.768 ms  134.443 ms(some cable and wireless)
+12  akamai-gw.fra.cw.net (62.208.252.6)  153.663 ms  149.424 ms  147.995 ms(frankfurt-Germany)
+13  a2-20-141-21.deploy.static.akamaitechnologies.com (2.20.141.21)  124.907 ms  126.881 ms  124.616 ms(finally reched akamai networ)
+root@training-blr:~#
+
+b)Are you able to find through which countries your packets are traveling ?
+Packets are travelling through Bangalore--mumbai----marseille----paris---frankfurt-Germany
+
+c)Can you tell which ISP the packets are going through ? 
+
+219.65.110.185.static-bangalore.vsnl.net.in (Tata Communications Limited--Got through using whois cmd)
+195.2.22.17 Cable & Wireless
+========================
+3)Network capture
+captured the packet trasmission and saved in download.pcap
+Desktop: 
+Start wireshark
+in your browser navigate to http://nsdevops.download.akamai.com
+Stop capture
+Save as download.pcap
+Summarize in few words the activity seen
+Command line
+Start network capture from the command line, saving output as download.pcap
+make http request to http://nsdevops.download.akamai.com
+Stop capture
+Dump the capture, and summarize in few words the activity seen
+
+d)
+->Frame:94: DNS query request for nsdevops.upload.akamai.com with  Source ip:192.168.43.18 , local name server:192.168.43.1, source port:55353 and dstn Port:53(DNS port number) on device
+
+->Frame 95:Makes a quick UDP internet connection with src port:60961 and dst port:443(https port)
+
+->Frame:97: Got the DNS response as type A, CNAME .nsdevops.1.cftp.e.stor.lb.akamai.com and this again had  a CNAME as r25971-34199.nears.1.cftp.e.stor.lb.akamai.net from src port:53 to dst port:55353.
+
+With multiple addresses:2.20.141.7-12-21-4-etc… one CNAME with multiple IP’s
+
+->Frame:98:Source ip made a TCP request with first ip returned in DNS response, port number 80[http port] with SYN flag with seq num:0
+
+->Frame 99--:From source port 443 made a quick UDP request with different payload length and sequence numbers
+
+->Malformed packet exceptional and new fragment overlaps old data(retransmission) error occurred.    4 connection with reset( RST) .
+N flag request.
+
+->in  turn it lead to TCP retransmission ,keep alive,Dup ack ,spurious retransmission and zero size window issue occurred.
+
+========================
+4)HTTP:
+a)Create a command that would do a POST request that will return parameters in JSON format
+[root@padmashree ~]# curl -X POST "https://httpbin.org/post" -H "accept: application/json"
+{
+  "args": {},
+  "data": "",
+  "files": {},
+  "form": {},
+  "headers": {
+    "Accept": "application/json",
+    "Host": "httpbin.org",
+    "User-Agent": "curl/7.29.0",
+    "X-Amzn-Trace-Id": "Root=1-5ea1d8ae-b95417f04070663097bfcad0"
+  },
+  "json": null,
+  "origin": "106.193.1.156",
+  "url": "https://httpbin.org/post"
+}
+[root@padmashree ~]#
+
+b)Create a command that would make a request which will set a cookie named foo with the value bar, and return the cookies value in JSON format
+root@padmashree training]# curl -X GET "https://httpbin.org/cookies/set/foo/bar" -H "accept: application/json"
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+<title>Redirecting...</title>
+<h1>Redirecting...</h1>
+<p>You should be redirected automatically to target URL: <a href="/cookies">/cookies</a>.  If not click the link.
+
+#curl -v "https://httpbin.org/cookies/set/foo/bar" -H "accept: application/json"
+will get the complete http header
